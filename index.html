@@ -75,7 +75,16 @@ function validProfile(p){ return !!(p.name && p.phone && p.position); }
 function esc(v){ return encodeURIComponent((v || "").trim()); }
 function buildUrl(test){
   const p = readProfile();
-  const q = `name=${esc(p.name)}&phone=${esc(p.phone)}&position=${esc(p.position)}`;
+  const srcQ = new URLSearchParams(window.location.search);
+  const keep = new URLSearchParams();
+  keep.set("name", (p.name || "").trim());
+  keep.set("phone", (p.phone || "").trim());
+  keep.set("position", (p.position || "").trim());
+  // Forward safe debug flag to child apps (used by IQ autofill mode).
+  if(srcQ.get("dev") === "1") keep.set("dev", "1");
+  const sheet = (srcQ.get("sheet") || "").trim();
+  if(sheet) keep.set("sheet", sheet);
+  const q = keep.toString();
   return `${test.path}?${q}`;
 }
 function openTest(test){

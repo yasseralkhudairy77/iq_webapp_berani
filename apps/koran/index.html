@@ -528,7 +528,7 @@
 
   <script>
     const DEFAULT_ENDPOINT =
-      "https://script.google.com/macros/s/AKfycbxW0ikEwUwnRJhc89EkFRsUlMLR7lM_SGQbtduixCEoO6U8o-GMVlyQRNWY7-J4CcTV/exec";
+      "https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec";
     const SHEET_ENDPOINT_KEY = "berani_sheet_endpoint_v1";
     function resolveEndpoint(){
       const q = new URLSearchParams(window.location.search);
@@ -929,13 +929,34 @@
       nextProblem();
     }
 
+    function resolveSuiteToken(){
+      const q = new URLSearchParams(window.location.search);
+      const fromQuery = (q.get("token") || "").trim();
+      if(fromQuery) return fromQuery;
+      try{
+        const ls = JSON.parse(localStorage.getItem("berani_suite_profile_v1") || "{}") || {};
+        return String(ls.token || "").trim();
+      }catch(_){
+        return "";
+      }
+    }
+
     async function sendToSheet(payload){
-      await fetch(ENDPOINT, {
+      const res = await fetch(ENDPOINT, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action:"submit", module:"pauli_kraeplin", payload })
+        body: JSON.stringify({ action:"submit", module:"pauli_kraeplin", token: payload?.token || "", payload })
       });
+      const text = await res.text();
+      let json = null;
+      try{
+        json = JSON.parse(text);
+      }catch(_){
+        throw new Error("Respons web app bukan JSON valid.");
+      }
+      if(json.status !== "ok"){
+        throw new Error(json.message || "Submit Pauli gagal.");
+      }
+      return json;
     }
 
     function buildSummaryText(acc, speed, sd, endurance){
@@ -991,7 +1012,7 @@ ${perP.map((_,i)=>`${String(i+1).padStart(2,'0')} | ${String(perP[i]).padStart(2
 
       const payload = {
         position: (new URLSearchParams(window.location.search).get("position") || "").trim(),
-        token: (new URLSearchParams(window.location.search).get("token") || "").trim(),
+        token: resolveSuiteToken(),
         module: "pauli_kraeplin",
         nama: candidate.nama,
         nohp: candidate.nohp,
@@ -1008,11 +1029,17 @@ ${perP.map((_,i)=>`${String(i+1).padStart(2,'0')} | ${String(perP[i]).padStart(2
         userAgent: navigator.userAgent
       };
 
-      sendToSheet(payload)
-        .then(()=> toast("Terkirim ke Google Sheet OK"))
-        .catch(()=> toast("Gagal kirim ke Sheet (cek internet) PERINGATAN"));
-
-      goNextTestWithDelay(reason === "timeout" ? "timeout" : "manual");
+      (async ()=>{
+        try{
+          await sendToSheet(payload);
+          toast("Terkirim ke Google Sheet OK");
+          goNextTestWithDelay(reason === "timeout" ? "timeout" : "manual");
+        }catch(err){
+          const msg = err?.message || "unknown";
+          toast("Gagal kirim ke Sheet");
+          alert("Hasil Pauli gagal tersimpan: " + msg + "\\nSilakan cek token / Apps Script dulu.");
+        }
+      })();
     }
 
     function toCSV(){
@@ -1222,4 +1249,5 @@ ${perP.map((_,i)=>`${String(i+1).padStart(2,'0')} | ${String(perP[i]).padStart(2
 </script>
 </body>
 </html>
+
 

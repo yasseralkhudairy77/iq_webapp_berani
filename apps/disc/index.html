@@ -218,6 +218,9 @@
             <input id="role" placeholder="Contoh: HR Recruitment Supervisor" />
           </div>
         </div>
+        <div class="btns" style="margin-top:10px">
+          <button id="testFillBtn" class="warn" type="button" style="display:none">Mode Uji (Autofill)</button>
+        </div>
 
         <div class="row three hrd-only" style="margin-top:10px">
           <div>
@@ -285,7 +288,7 @@
           <label style="margin-top:10px">Apps Script Endpoint (Web App URL)</label>
           <input
             id="endpoint"
-            value="https://script.google.com/macros/s/AKfycbxW0ikEwUwnRJhc89EkFRsUlMLR7lM_SGQbtduixCEoO6U8o-GMVlyQRNWY7-J4CcTV/exec"
+            value="https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec"
           />
           <div class="btns">
             <button id="sendBtn" class="warn" disabled>Kirim ke Google Sheet</button>
@@ -408,7 +411,9 @@
   const ROLEKEY = "disc_fc40_mobile_role_profiles_v1";
   const ENDPOINTKEY = "disc_fc40_mobile_endpoint_v1";
   const SHARED_ENDPOINT_KEY = "berani_sheet_endpoint_v1";
-  const DEFAULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxW0ikEwUwnRJhc89EkFRsUlMLR7lM_SGQbtduixCEoO6U8o-GMVlyQRNWY7-J4CcTV/exec";
+  const DEFAULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec";
+  const SUBMIT_GUARD_KEY = "berani_submit_guard_v1";
+  const SUBMIT_GUARD_TTL_MS = 24 * 60 * 60 * 1000;
 
   function todayISO(){
     const d=new Date();
@@ -430,6 +435,19 @@
   function normalizePhone08(raw){
     return cleanPhone(raw);
   }
+  function isDevModeEnabled(){
+    const q = new URLSearchParams(window.location.search);
+    const host = (window.location.hostname || "").toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || q.get("dev") === "1";
+  }
+  function fillTestingProfile(){
+    $("name").value = "TEST KANDIDAT";
+    $("phone").value = "08325615352";
+    $("role").value = "SALES";
+    ensureCandidateId();
+    render();
+    alert("Autofill mode uji aktif.");
+  }
   function resolveEndpoint(){
     const q = new URLSearchParams(window.location.search);
     const fromQuery = (q.get("sheet") || "").trim();
@@ -441,6 +459,46 @@
       localStorage.setItem(ENDPOINTKEY, url);
     }
     return url;
+  }
+
+  function readSubmitGuardMap(){
+    try{
+      const raw = localStorage.getItem(SUBMIT_GUARD_KEY) || "{}";
+      const parsed = JSON.parse(raw);
+      if(!parsed || typeof parsed !== "object") return {};
+      const now = Date.now();
+      const kept = {};
+      Object.keys(parsed).forEach((k)=>{
+        const ts = Number(parsed[k]);
+        if(Number.isFinite(ts) && (now - ts) < SUBMIT_GUARD_TTL_MS){
+          kept[k] = ts;
+        }
+      });
+      return kept;
+    }catch(_){
+      return {};
+    }
+  }
+  function writeSubmitGuardMap(map){
+    try{ localStorage.setItem(SUBMIT_GUARD_KEY, JSON.stringify(map || {})); }catch(_){}
+  }
+  function makeSubmitGuardId(p){
+    const moduleName = String(p?.module || "disc").trim().toLowerCase();
+    const token = String(p?.token || "").trim().toLowerCase();
+    const phone = String(p?.phone || "").replace(/\D/g, "");
+    const name = String(p?.name || "").trim().toLowerCase();
+    return [moduleName, token, phone, name].join("|");
+  }
+  function hasRecentSubmit(p){
+    const id = makeSubmitGuardId(p);
+    const map = readSubmitGuardMap();
+    return !!map[id];
+  }
+  function markSubmit(p){
+    const id = makeSubmitGuardId(p);
+    const map = readSubmitGuardMap();
+    map[id] = Date.now();
+    writeSubmitGuardMap(map);
   }
   function buildNextTestUrl(){
     const q = new URLSearchParams(window.location.search);
@@ -958,6 +1016,10 @@
     localStorage.setItem(SHARED_ENDPOINT_KEY, url);
 
     const p = payload();
+    if(hasRecentSubmit(p)){
+      alert("Data kandidat ini sudah pernah dikirim dalam 24 jam terakhir. Submit ulang diblokir.");
+      return;
+    }
     try{
       await fetch(url, {
         method:"POST",
@@ -965,6 +1027,7 @@
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ action:"submit", module:"disc", payload:p })
       });
+      markSubmit(p);
       alert("Request terkirim ke Google Sheet âœ…");
     }catch(err){
       alert("Gagal kirim. Coba jalankan HTML via server lokal (bukan file://).");
@@ -973,6 +1036,7 @@
   async function sendToSheetSilent(p){
     const url = resolveEndpoint();
     if(!url) return;
+    if(hasRecentSubmit(p)) return;
     try{
       await fetch(url, {
         method:"POST",
@@ -980,6 +1044,7 @@
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ action:"submit", module:"disc", payload:p })
       });
+      markSubmit(p);
     }catch(_){}
   }
 
@@ -1178,6 +1243,11 @@
   $("saveBtn").addEventListener("click", saveLocal);
   $("sendBtn").addEventListener("click", sendToSheet);
   $("resetBtn").addEventListener("click", resetAll);
+  const testFillBtn = $("testFillBtn");
+  if(testFillBtn && isDevModeEnabled()){
+    testFillBtn.style.display = "";
+    testFillBtn.addEventListener("click", fillTestingProfile);
+  }
 
   // ---------- Phone input realtime cleaning ----------
   $("phone").addEventListener("input", (e)=>{
@@ -1277,6 +1347,7 @@
 </script>
 </body>
 </html>
+
 
 
 

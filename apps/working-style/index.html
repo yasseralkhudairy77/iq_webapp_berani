@@ -178,6 +178,7 @@
 
         <div class="btns">
           <button id="startBtn">Mulai Tes</button>
+          <button id="testFillBtn" style="display:none" type="button">Mode Uji (Autofill)</button>
         </div>
 
         <div id="introWarn" class="warn hidden"></div>
@@ -258,8 +259,10 @@
 
 <script>
 (() => {
-  const DEFAULT_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxW0ikEwUwnRJhc89EkFRsUlMLR7lM_SGQbtduixCEoO6U8o-GMVlyQRNWY7-J4CcTV/exec";
+  const DEFAULT_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec";
   const SHEET_ENDPOINT_KEY = "berani_sheet_endpoint_v1";
+  const SUBMIT_GUARD_KEY = "berani_submit_guard_v1";
+  const SUBMIT_GUARD_TTL_MS = 24 * 60 * 60 * 1000;
   function resolveSheetWebAppUrl(){
     const q = new URLSearchParams(window.location.search);
     const fromQuery = (q.get("sheet") || "").trim();
@@ -269,6 +272,46 @@
     return url;
   }
   const SHEET_WEBAPP_URL = resolveSheetWebAppUrl();
+
+  function readSubmitGuardMap(){
+    try{
+      const raw = localStorage.getItem(SUBMIT_GUARD_KEY) || "{}";
+      const parsed = JSON.parse(raw);
+      if(!parsed || typeof parsed !== "object") return {};
+      const now = Date.now();
+      const kept = {};
+      Object.keys(parsed).forEach((k)=>{
+        const ts = Number(parsed[k]);
+        if(Number.isFinite(ts) && (now - ts) < SUBMIT_GUARD_TTL_MS){
+          kept[k] = ts;
+        }
+      });
+      return kept;
+    }catch(_){
+      return {};
+    }
+  }
+  function writeSubmitGuardMap(map){
+    try{ localStorage.setItem(SUBMIT_GUARD_KEY, JSON.stringify(map || {})); }catch(_){}
+  }
+  function makeSubmitGuardId(payload){
+    const moduleName = String(payload?.module || "working_style").trim().toLowerCase();
+    const token = String(payload?.candidate?.token || "").trim().toLowerCase();
+    const phone = String(payload?.candidate?.phone || "").replace(/\D/g, "");
+    const name = String(payload?.candidate?.name || "").trim().toLowerCase();
+    return [moduleName, token, phone, name].join("|");
+  }
+  function hasRecentSubmit(payload){
+    const id = makeSubmitGuardId(payload);
+    const map = readSubmitGuardMap();
+    return !!map[id];
+  }
+  function markSubmit(payload){
+    const id = makeSubmitGuardId(payload);
+    const map = readSubmitGuardMap();
+    map[id] = Date.now();
+    writeSubmitGuardMap(map);
+  }
 
   // ====== CONFIG ======
   const DIMENSIONS = [
@@ -405,6 +448,19 @@
 
   function validatePhone(phone){
     return /^08\d{8,13}$/.test(phone.trim()); // 08 + 8-13 digits
+  }
+  function isDevModeEnabled(){
+    const q = new URLSearchParams(window.location.search);
+    const host = (window.location.hostname || "").toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || q.get("dev") === "1";
+  }
+  function fillTestingProfile(){
+    $("name").value = "TEST KANDIDAT";
+    $("phone").value = "08325615352";
+    $("role").value = "SALES";
+    if(!$("email").value) $("email").value = "08325615352@local.invalid";
+    $("purpose").value = "recruitment";
+    hideWarn(introWarn);
   }
   function validateEmail(email){
     if(!email.trim()) return true; // optional
@@ -674,6 +730,9 @@
     };
   }
   async function sendToSheet(payload){
+    if(hasRecentSubmit(payload)){
+      return false;
+    }
     try{
       await fetch(SHEET_WEBAPP_URL, {
         method:"POST",
@@ -681,6 +740,7 @@
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ action:"submit", module:"working_style", payload })
       });
+      markSubmit(payload);
       return true;
     }catch(_){
       return false;
@@ -811,6 +871,14 @@
 
   // ====== EVENTS ======
   $("startBtn").onclick = start;
+  const testFillBtn = $("testFillBtn");
+  if(testFillBtn && isDevModeEnabled()){
+    testFillBtn.style.display = "";
+    testFillBtn.onclick = ()=>{
+      fillTestingProfile();
+      alert("Autofill mode uji aktif.");
+    };
+  }
 
   prevBtn.onclick = () => {
     hideWarn(testWarn);
@@ -918,4 +986,5 @@
 </script>
 </body>
 </html>
+
 

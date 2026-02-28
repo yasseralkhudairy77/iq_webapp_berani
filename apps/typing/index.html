@@ -284,12 +284,13 @@
       </div>
 
       <button id="btnModalStart" class="btn modalCTA">Lanjut & Mulai</button>
+      <button id="btnModalFill" class="btn" style="display:none" type="button">Mode Uji (Autofill)</button>
     </div>
   </div>
 
 <script>
 (() => {
-  const DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxW0ikEwUwnRJhc89EkFRsUlMLR7lM_SGQbtduixCEoO6U8o-GMVlyQRNWY7-J4CcTV/exec";
+  const DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec";
   const SHEET_ENDPOINT_KEY = "berani_sheet_endpoint_v1";
   function resolveWebAppUrl(){
     const q = new URLSearchParams(window.location.search);
@@ -402,6 +403,7 @@
     errName: document.getElementById("errName"),
     errPhone: document.getElementById("errPhone"),
     btnModalStart: document.getElementById("btnModalStart"),
+    btnModalFill: document.getElementById("btnModalFill"),
     pickBtns: [...document.querySelectorAll(".pickBtn")]
   };
 
@@ -409,6 +411,18 @@
   const fmtTime = s => `${pad2(Math.floor(s/60))}:${pad2(s%60)}`;
   const clamp = (v,min,max) => Math.max(min, Math.min(max,v));
   const randPick = arr => arr[Math.floor(Math.random()*arr.length)];
+  function isDevModeEnabled(){
+    const q = new URLSearchParams(window.location.search);
+    const host = (window.location.hostname || "").toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || q.get("dev") === "1";
+  }
+  function fillTestingProfile(){
+    el.inpName.value = "TEST KANDIDAT";
+    el.inpPhone.value = "08325615352";
+    setPick("test");
+    el.errName.textContent = "";
+    el.errPhone.textContent = "";
+  }
   function buildNextTestUrl(){
     const q = new URLSearchParams(window.location.search);
     const keep = new URLSearchParams();
@@ -747,6 +761,8 @@
   function startTest(){
     clearInterval(state.timerId);
     nextRedirectScheduled = false;
+    candidate.mode = "test";
+    setPick("test");
 
     state.okTotal = 0;
     state.errTotal = 0;
@@ -945,6 +961,7 @@
       token: (q.get("token") || "").trim(),
       kandidatNama: candidate.name,
       kandidatNoHP: candidate.phone,
+      mode: "test",
       modeDipilih: "test",
       modeTes: "Tes 10 menit",
       isPractice: false,
@@ -984,6 +1001,10 @@
     if (candidate.mode === "practice") startPractice();
     else startTest();
   });
+  if (el.btnModalFill && isDevModeEnabled()){
+    el.btnModalFill.style.display = "";
+    el.btnModalFill.addEventListener("click", fillTestingProfile);
+  }
 
   el.btnNew.addEventListener("click", () => openCandidateModal());
 
@@ -1142,5 +1163,6 @@
 </script>
 </body>
 </html>
+
 
 

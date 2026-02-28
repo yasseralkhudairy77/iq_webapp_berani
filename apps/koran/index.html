@@ -460,6 +460,7 @@
       <div class="warn" id="startWarn">Nama dan No HP wajib diisi dengan format yang benar.</div>
 
       <button class="primary" id="saveCandidateBtn">Lanjut & Mulai</button>
+      <button class="ghost" id="testFillBtn" style="display:none" type="button">Mode Uji (Autofill)</button>
     </div>
   </div>
 
@@ -683,6 +684,17 @@
 
     function normalizePhone(raw){ return String(raw || "").replace(/\D/g, ""); }
     function validPhone(phoneDigits){ return /^08\d{8,11}$/.test(phoneDigits); }
+    function isDevModeEnabled(){
+      const q = new URLSearchParams(window.location.search);
+      const host = (window.location.hostname || "").toLowerCase();
+      return host === "localhost" || host === "127.0.0.1" || q.get("dev") === "1";
+    }
+    function fillTestingProfile(){
+      candName.value = "TEST KANDIDAT";
+      candPhone.value = "08325615352";
+      setMode("test");
+      startWarn.style.display = "none";
+    }
 
     function applyConfigFromMode(){
       const m = MODES[candidate.modeKey] || MODES.practice;
@@ -1133,6 +1145,14 @@ ${perP.map((_,i)=>`${String(i+1).padStart(2,'0')} | ${String(perP[i]).padStart(2
     });
 
     startBtn.addEventListener('click', start);
+    const testFillBtn = document.getElementById("testFillBtn");
+    if(testFillBtn && isDevModeEnabled()){
+      testFillBtn.style.display = "";
+      testFillBtn.addEventListener("click", ()=>{
+        fillTestingProfile();
+        toast("Autofill mode uji aktif.");
+      });
+    }
     stopBtn.addEventListener('click', () => {
       if (!running){
         finish("manual");

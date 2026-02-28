@@ -238,6 +238,9 @@
             <div class="small" style="margin-top:10px">Nilai detail tidak ditampilkan ke kandidat.</div>
             <div class="hr"></div>
             <div class="small" id="metaText">Status pengiriman hasil: menunggu...</div>
+            <div class="actions" style="margin-top:10px">
+              <button class="primary" id="nextAfterIqBtn">Lanjut ke Tes Berikutnya (Pauli/Kraeplin)</button>
+            </div>
           </div>
         </div>
       </div>
@@ -245,7 +248,7 @@
   </div>
 
 <script>
-const DEFAULT_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxW0ikEwUwnRJhc89EkFRsUlMLR7lM_SGQbtduixCEoO6U8o-GMVlyQRNWY7-J4CcTV/exec";
+const DEFAULT_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec";
 const SHEET_ENDPOINT_KEY = "berani_sheet_endpoint_v1";
 const LS_KEY = "iq_test_state_v2";
 const SUITE_PROFILE_KEY = "berani_suite_profile_v1";
@@ -268,12 +271,10 @@ let state = {
 
 let timerHandle=null;
 function getSheetWebAppUrl(){
-  const q = new URLSearchParams(window.location.search);
-  const fromQuery = (q.get("sheet") || "").trim();
-  const fromLocal = (localStorage.getItem(SHEET_ENDPOINT_KEY) || "").trim();
-  const resolved = fromQuery || fromLocal || DEFAULT_SHEET_WEBAPP_URL;
-  if(resolved) localStorage.setItem(SHEET_ENDPOINT_KEY, resolved);
-  return resolved;
+  // Security hardening: pin endpoint to the official Apps Script URL.
+  // Ignore query/localStorage overrides to prevent bypass via stale/wrong endpoints.
+  localStorage.setItem(SHEET_ENDPOINT_KEY, DEFAULT_SHEET_WEBAPP_URL);
+  return DEFAULT_SHEET_WEBAPP_URL;
 }
 const SHEET_WEBAPP_URL = getSheetWebAppUrl();
 
@@ -342,6 +343,31 @@ function openLinkedTest(path){
   saveSuiteProfile(p);
   window.open(`${path}?${suiteQuery()}`, "_blank", "noopener");
 }
+function buildNextTestUrl(){
+  const q = new URLSearchParams(window.location.search);
+  const keep = new URLSearchParams();
+  ["name","phone","position","token","sheet"].forEach(k=>{
+    const v = q.get(k);
+    if(v) keep.set(k, v);
+  });
+  const fromInputs = suiteProfileFromInputs();
+  if(!keep.get("name") && fromInputs.name) keep.set("name", fromInputs.name);
+  if(!keep.get("phone") && fromInputs.phone) keep.set("phone", fromInputs.phone);
+  if(!keep.get("position") && fromInputs.position) keep.set("position", fromInputs.position);
+  if(!keep.get("token") && fromInputs.token) keep.set("token", fromInputs.token);
+  const sheet = localStorage.getItem(SHEET_ENDPOINT_KEY) || SHEET_WEBAPP_URL || "";
+  if(!keep.get("sheet") && sheet) keep.set("sheet", sheet);
+  const qs = keep.toString();
+  return `../koran/index.html${qs ? "?" + qs : ""}`;
+}
+function goNextTestWithDelay(ms){
+  const delay = Number.isFinite(Number(ms)) ? Number(ms) : 3000;
+  const meta = document.getElementById("metaText");
+  if(meta){
+    meta.textContent = `Hasil terkirim. Lanjut otomatis ke Tes Pauli/Kraeplin dalam ${Math.round(delay/1000)} detik...`;
+  }
+  setTimeout(()=>{ window.location.href = buildNextTestUrl(); }, delay);
+}
 function applySuiteProfileToInputs(){
   const params = new URLSearchParams(window.location.search);
   const incoming = {
@@ -366,13 +392,23 @@ function applySuiteProfileToInputs(){
 function getQById(id){ return QUESTIONS.find(q=>q.id===id); }
 function answeredCount(){ return Object.keys(state.answers||{}).length; }
 
+function normalizeToken(v){
+  return String(v || "").trim().toUpperCase();
+}
+
 async function validateTokenBeforeStart(){
-  const token = (document.getElementById("token")?.value || "").trim();
+  const token = normalizeToken((document.getElementById("token")?.value || ""));
   const name = (document.getElementById("name")?.value || "").trim();
   const phone = (document.getElementById("phone")?.value || "").trim();
 
   const json = await postToSheetWebApp({ action:"validate", token, name, phone });
-  if(json.status !== "ok") throw new Error(json.message || "Token invalid");
+  if(json.status !== "ok" || json.valid === false) throw new Error(json.message || "Token invalid");
+
+  // Extra guard: if backend returns canonical token, enforce exact match.
+  const backendToken = normalizeToken(json.token || json.data?.token || json.record?.token || "");
+  if(backendToken && backendToken !== token){
+    throw new Error("Token tidak cocok (harus persis sama).");
+  }
 }
 
 async function postToSheetWebApp(bodyObj){
@@ -606,7 +642,10 @@ function submit(){
   document.getElementById("questionArea").style.display="none";
   document.getElementById("resultArea").style.display="block";
   postToSheet(state.result)
-    .then(()=>{ document.getElementById("metaText").textContent = "Hasil terkirim ke sistem HRD."; })
+    .then(()=>{
+      document.getElementById("metaText").textContent = "Hasil terkirim ke sistem HRD.";
+      goNextTestWithDelay(3000);
+    })
     .catch(err=>{
       document.getElementById("metaText").textContent = "Pengiriman hasil gagal. Hubungi HRD/pengawas.";
       alert("Peringatan: Gagal: " + (err?.message || "unknown"));
@@ -679,7 +718,7 @@ async function postToSheet(result){
     raw: result
   };
 
-  const json = await postToSheetWebApp({ action:"submit", token, payload });
+  const json = await postToSheetWebApp({ action:"submit", module:"iq", token, payload });
   if(json.status === "ok") alert("OK: Hasil tersimpan.");
   else alert("Peringatan: Gagal: " + (json.message || "unknown"));
 }
@@ -697,6 +736,12 @@ document.getElementById("startBtn").onclick=async ()=>{
   if(!validPhone(phone)) return alert("No. WhatsApp tidak valid. Contoh: 083xxxxxxxxxx");
   if(!position) return alert("Posisi wajib diisi.");
   if(!token) return alert("Token kandidat wajib diisi.");
+  try{
+    await validateTokenBeforeStart();
+  }catch(err){
+    alert("Token tidak valid / sudah dipakai: " + (err?.message || "unknown"));
+    return;
+  }
 
   state.identity={name,phone,position};
   state.durationMin=durationMin;
@@ -717,9 +762,15 @@ document.getElementById("startBtn").onclick=async ()=>{
   showTest();
 };
 
-document.getElementById("resumeBtn").onclick=()=>{
+document.getElementById("resumeBtn").onclick=async ()=>{
   const ok=load();
   if(!ok || !state.started) return alert("Belum ada sesi tersimpan.");
+  try{
+    await validateTokenBeforeStart();
+  }catch(err){
+    alert("Token tidak valid / sudah dipakai: " + (err?.message || "unknown"));
+    return;
+  }
   const prof = loadSuiteProfile();
   document.getElementById("name").value = state.identity?.name || "";
   document.getElementById("phone").value = state.identity?.phone || "";
@@ -749,6 +800,7 @@ document.getElementById("toKoranBtn").onclick=()=>openLinkedTest("../koran/index
 document.getElementById("toTypingBtn").onclick=()=>openLinkedTest("../typing/index.html");
 document.getElementById("toDiscBtn").onclick=()=>openLinkedTest("../disc/index.html");
 document.getElementById("toWorkingBtn").onclick=()=>openLinkedTest("../working-style/index.html");
+document.getElementById("nextAfterIqBtn").onclick=()=>{ window.location.href = buildNextTestUrl(); };
 document.getElementById("toggleIdentityBtn").onclick=()=>{
   const identityCard = document.getElementById("identityCard");
   const btn = document.getElementById("toggleIdentityBtn");
@@ -776,11 +828,30 @@ async function init(){
     alert("Soal gagal dimuat. Jalankan lewat server lokal (contoh: python -m http.server 8000), lalu buka http://localhost:8000");
   }
 
-  // auto load if exists
+  // auto load if exists; enforce token re-validation so stale sessions cannot bypass access.
   if(load() && state.started){
+    const profile = loadSuiteProfile();
+    if(profile?.token){
+      document.getElementById("token").value = profile.token;
+    }
+    try{
+      await validateTokenBeforeStart();
+    }catch(err){
+      localStorage.removeItem(LS_KEY);
+      state.started = false;
+      state.finished = false;
+      state.result = null;
+      alert("Sesi lama dibatalkan karena token tidak valid: " + (err?.message || "unknown"));
+      document.getElementById("timerLabel").textContent = "Waktu 40:00";
+      document.getElementById("progressLabel").textContent = "0/60 terjawab";
+      syncResponsiveTestLayout();
+      return;
+    }
+
     document.getElementById("name").value = state.identity?.name || "";
     document.getElementById("phone").value = state.identity?.phone || "";
     document.getElementById("position").value = state.identity?.position || "";
+    document.getElementById("token").value = profile?.token || document.getElementById("token").value || "";
     document.getElementById("duration").value = String(state.durationMin ?? 40);
     saveSuiteProfile(suiteProfileFromInputs());
     showTest();
@@ -794,4 +865,5 @@ init();
 </script>
 </body>
 </html>
+
 

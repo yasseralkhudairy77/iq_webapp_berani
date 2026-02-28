@@ -188,6 +188,7 @@
             <button class="primary" id="startBtn">Mulai Tes</button>
             <button id="resumeBtn">Lanjutkan (Auto-save)</button>
             <button class="danger" id="resetBtn">Reset</button>
+            <button id="testFillBtn" style="display:none" type="button">Mode Uji (Autofill)</button>
           </div>
           <div class="small" style="margin-top:10px"><b>Lanjut Tes Setelah IQ:</b></div>
           <div class="actions">
@@ -285,6 +286,25 @@ function load(){
   try{ state = Object.assign(state, JSON.parse(raw)); return true; } catch(e){ return false; }
 }
 function validPhone(p){ return /^08\d{8,13}$/.test((p||"").trim()); }
+function isDevModeEnabled(){
+  const q = new URLSearchParams(window.location.search);
+  const host = (window.location.hostname || "").toLowerCase();
+  const isLocal = host === "localhost" || host === "127.0.0.1";
+  return isLocal || q.get("dev") === "1";
+}
+function fillTestingProfile(){
+  const testProfile = {
+    name: "TEST KANDIDAT",
+    phone: "08325615352",
+    position: "SALES",
+    token: (document.getElementById("token")?.value || "").trim()
+  };
+  document.getElementById("name").value = testProfile.name;
+  document.getElementById("phone").value = testProfile.phone;
+  document.getElementById("position").value = testProfile.position;
+  // Keep token untouched by default for safety; tester can paste valid token manually.
+  saveSuiteProfile(testProfile);
+}
 function fmtTime(sec){
   if(state.durationMin<=0) return "Tanpa timer";
   const m=Math.floor(sec/60), s=sec%60;
@@ -787,6 +807,14 @@ document.getElementById("resetBtn").onclick=()=>{
     location.reload();
   }
 };
+const testFillBtn = document.getElementById("testFillBtn");
+if(testFillBtn && isDevModeEnabled()){
+  testFillBtn.style.display = "";
+  testFillBtn.onclick=()=>{
+    fillTestingProfile();
+    alert("Autofill mode uji aktif. Token tetap harus valid untuk mulai tes.");
+  };
+}
 
 document.getElementById("prevBtn").onclick=()=>{ if(state.currentIdx>0){ state.currentIdx--; renderQuestion(); save(); } };
 document.getElementById("nextBtn").onclick=()=>{ if(state.currentIdx<state.order.length-1){ state.currentIdx++; renderQuestion(); save(); } };

@@ -941,7 +941,8 @@
       }
     }
 
-    const SHEET_MODULE_PAULI = "pauli";
+    // Keep legacy module id so Apps Script writes with the same schema as existing rows.
+    const SHEET_MODULE_PAULI = "pauli_kraeplin";
 
     async function sendToSheet(payload){
       const res = await fetch(ENDPOINT, {
@@ -1018,8 +1019,11 @@ ${perP.map((_,i)=>`${String(i+1).padStart(2,'0')} | ${String(perP[i]).padStart(2
         module: SHEET_MODULE_PAULI,
         nama: candidate.nama,
         nohp: candidate.nohp,
+        // Send both legacy and normalized keys to keep backend mapping stable.
         modeTes: candidate.modeLabel,
+        mode: candidate.modeLabel,
         durasiMenit: CONFIG.totalMinutes,
+        durationMin: CONFIG.totalMinutes,
         total: total,
         benar: ok,
         salah: bad,

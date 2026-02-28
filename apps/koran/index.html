@@ -953,8 +953,9 @@
       }
     }
 
-    // Keep legacy module id so Apps Script writes with the same schema as existing rows.
-    const SHEET_MODULE_PAULI = "pauli_kraeplin";
+    // Route submit through legacy "pauli" channel to keep full sheet schema
+    // (mode, durationMin, benar, salah, akurasi, speedAvg, sd, endurance).
+    const SHEET_MODULE_PAULI = "pauli";
 
     async function sendToSheet(payload){
       const res = await fetch(ENDPOINT, {

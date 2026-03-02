@@ -664,12 +664,13 @@ function syncResponsiveTestLayout(){
 
 function mapIqReport(correct){
   const c = Number(correct || 0);
-  if(c >= 55) return { scoreBand:"55-60", iqEstimate:"130+", category:"Very Superior" };
-  if(c >= 50) return { scoreBand:"50-54", iqEstimate:"120-129", category:"Superior" };
-  if(c >= 45) return { scoreBand:"45-49", iqEstimate:"110-119", category:"High Average" };
+  if(c >= 56) return { scoreBand:"56-60", iqEstimate:">=130", category:"Very Superior" };
+  if(c >= 51) return { scoreBand:"51-55", iqEstimate:"120-129", category:"Superior" };
+  if(c >= 45) return { scoreBand:"45-50", iqEstimate:"110-119", category:"High Average" };
   if(c >= 35) return { scoreBand:"35-44", iqEstimate:"90-109", category:"Average" };
   if(c >= 25) return { scoreBand:"25-34", iqEstimate:"80-89", category:"Low Average" };
-  return { scoreBand:"<25", iqEstimate:"<80", category:"Borderline" };
+  if(c >= 15) return { scoreBand:"15-24", iqEstimate:"70-79", category:"Borderline" };
+  return { scoreBand:"0-14", iqEstimate:"<70", category:"Extremely Low" };
 }
 
 function submit(){
@@ -966,6 +967,7 @@ init();
 </script>
 </body>
 </html>
+
 
 
 

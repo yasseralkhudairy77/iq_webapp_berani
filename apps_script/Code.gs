@@ -105,6 +105,8 @@ function submitIQ_(ss, token, p) {
   const name = safeStr_(p.name || p.nama);
   const phone = safeStr_(p.phone || p.nohp);
   const position = safeStr_(p.position || p.role);
+  const correct = toNum_(p.correct);
+  const iqMeta = deriveIqMeta_(correct);
 
   upsertNoToken_(noToken, {
     token: token,
@@ -122,12 +124,12 @@ function submitIQ_(ss, token, p) {
     startedAt: parseDateOrRaw_(p.startedAt),
     endedAt: parseDateOrRaw_(p.endedAt),
     durationSec: toNum_(p.durationSec),
-    correct: toNum_(p.correct),
+    correct: correct,
     total: toNum_(p.total),
     percent: toNum_(p.percent),
-    iqEstimate: toNum_(p.iqEstimate),
-    iqCategory: safeStr_(p.iqCategory),
-    scoreBand: safeStr_(p.scoreBand),
+    iqEstimate: iqMeta.iqEstimate || safeStr_(p.iqEstimate),
+    iqCategory: iqMeta.iqCategory || safeStr_(p.iqCategory),
+    scoreBand: iqMeta.scoreBand || safeStr_(p.scoreBand),
     answered: toNum_(p.answered),
     unanswered: toNum_(p.unanswered),
     flagged: toNum_(p.flagged || p.flaggedCount),
@@ -372,6 +374,18 @@ function toPctFromLikert5_(v) {
   const n = Number(v);
   if (isNaN(n)) return "";
   return Math.round((Math.max(1, Math.min(5, n)) / 5) * 100);
+}
+
+function deriveIqMeta_(correct) {
+  const c = Number(correct);
+  if (!isFinite(c)) return { scoreBand: "", iqEstimate: "", iqCategory: "" };
+  if (c >= 56) return { scoreBand: "56-60", iqEstimate: ">=130", iqCategory: "Very Superior" };
+  if (c >= 51) return { scoreBand: "51-55", iqEstimate: "120-129", iqCategory: "Superior" };
+  if (c >= 45) return { scoreBand: "45-50", iqEstimate: "110-119", iqCategory: "High Average" };
+  if (c >= 35) return { scoreBand: "35-44", iqEstimate: "90-109", iqCategory: "Average" };
+  if (c >= 25) return { scoreBand: "25-34", iqEstimate: "80-89", iqCategory: "Low Average" };
+  if (c >= 15) return { scoreBand: "15-24", iqEstimate: "70-79", iqCategory: "Borderline" };
+  return { scoreBand: "0-14", iqEstimate: "<70", iqCategory: "Extremely Low" };
 }
 
 function calcPauliScore_(accuracyPct, speedPerMin, consistencyPct) {

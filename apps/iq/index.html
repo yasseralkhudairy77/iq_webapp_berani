@@ -112,6 +112,7 @@
     .qnav{grid-template-columns:repeat(5,1fr);}
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
   <div class="topbar">
@@ -500,6 +501,23 @@ async function drawCroppedToCanvas(imgUrl, bbox){
   });
 }
 
+async function drawPdfPageToCanvas(pdfUrl){
+  if(!window.pdfjsLib) throw new Error("pdfjsLib unavailable");
+  if(!window.pdfjsLib.GlobalWorkerOptions.workerSrc){
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+  const loadingTask = window.pdfjsLib.getDocument(pdfUrl);
+  const pdf = await loadingTask.promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale: 1.7 });
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  return canvas;
+}
 async function renderQuestion(){
   const qid=currentQId();
   const q=getQById(qid);
@@ -529,13 +547,18 @@ async function renderQuestion(){
       media.appendChild(box);
       hint.innerHTML = `PDF: <a href="soal.pdf#page=${q.page}" target="_blank" rel="noopener">Buka halaman ${q.page}</a> • Tampilan ini auto-zoom (bbox).`;
     }else{
-      const frame=document.createElement("iframe");
-      frame.title=`Halaman ${q.page}`;
-      frame.src=pagePdf;
-      frame.style.width="100%";
-      frame.style.height="520px";
-      frame.style.border="0";
-      box.appendChild(frame);
+      try{
+        const canvas = await drawPdfPageToCanvas(pagePdf);
+        box.appendChild(canvas);
+      }catch(_){
+        const frame=document.createElement("iframe");
+        frame.title=`Halaman ${q.page}`;
+        frame.src=pagePdf;
+        frame.style.width="100%";
+        frame.style.height="520px";
+        frame.style.border="0";
+        box.appendChild(frame);
+      }
       media.appendChild(box);
       hint.innerHTML = `PDF: <a href="soal.pdf#page=${q.page}" target="_blank" rel="noopener">Buka halaman ${q.page}</a> • (Opsional) nanti bisa ditambah bbox untuk auto-zoom.`;
     }
@@ -923,5 +946,7 @@ init();
 </script>
 </body>
 </html>
+
+
 
 

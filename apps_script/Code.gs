@@ -5,7 +5,7 @@
 
 const CONFIG = {
   SPREADSHEET_ID: "PASTE_SPREADSHEET_ID_DI_SINI",
-  STRICT_TOKEN: false,
+  STRICT_TOKEN: true,
   SHEET: {
     NO_TOKEN: "NO_TOKEN",
     IQ: "IQ",
@@ -73,6 +73,18 @@ function handleValidate_(req) {
     };
   }
 
+  const reqName = safeStr_(req.name || req.nama).trim();
+  const reqPhone = safeStr_(req.phone || req.nohp).trim();
+  if (isCandidateMismatch_(found.record, reqName, reqPhone)) {
+    return {
+      status: "ok",
+      valid: false,
+      token: found.record.token || token,
+      message: "Token sudah terikat ke kandidat lain.",
+      record: found.record,
+    };
+  }
+
   return {
     status: "ok",
     valid: true,
@@ -107,6 +119,20 @@ function submitIQ_(ss, token, p) {
   const position = safeStr_(p.position || p.role);
   const correct = toNum_(p.correct);
   const iqMeta = deriveIqMeta_(correct);
+  const found = findRowByToken_(noToken, token);
+
+  if (!found && CONFIG.STRICT_TOKEN) {
+    throw new Error("Token tidak terdaftar.");
+  }
+  if (found) {
+    const status = upper_(safeStr_(found.record.status));
+    if (CONFIG.BLOCKED_STATUS.indexOf(status) >= 0) {
+      throw new Error("Token tidak aktif: " + status);
+    }
+    if (isCandidateMismatch_(found.record, name, phone)) {
+      throw new Error("Token sudah terikat ke kandidat lain.");
+    }
+  }
 
   upsertNoToken_(noToken, {
     token: token,
@@ -473,6 +499,17 @@ function topLabel_(obj) {
     }
   });
   return bestKey;
+}
+
+function isCandidateMismatch_(record, inputName, inputPhone) {
+  const recName = lower_(safeStr_(record && record.name).trim());
+  const recPhone = safeStr_(record && record.phone).trim();
+  const inName = lower_(safeStr_(inputName).trim());
+  const inPhone = safeStr_(inputPhone).trim();
+
+  const nameMismatch = recName && inName && recName !== inName;
+  const phoneMismatch = recPhone && inPhone && recPhone !== inPhone;
+  return !!(nameMismatch || phoneMismatch);
 }
 
 function pickDefined_() {

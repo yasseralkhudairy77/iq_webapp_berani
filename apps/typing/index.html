@@ -1,4 +1,4 @@
-ï»¿<!doctype html>
+<!doctype html>
 <html lang="id">
 <head>
   <meta charset="utf-8" />
@@ -278,8 +278,8 @@
           <button type="button" class="pickBtn" data-mode="test">Tes 10 menit</button>
         </div>
         <div class="modalNote">
-          â€¢ Latihan: untuk pemanasan / coba tombol.<br/>
-          â€¢ Tes: untuk hasil evaluasi.
+          • Latihan: untuk pemanasan / coba tombol.<br/>
+          • Tes: untuk hasil evaluasi.
         </div>
       </div>
 
@@ -290,7 +290,7 @@
 
 <script>
 (() => {
-  const DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec";
+  const DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwD1oBDWTEHyKBx6eWBThsfBxU_ZBXMQQX022NMheKEFvWY67X1VQMjt2tQWMoyJfSa/exec";
   const SHEET_ENDPOINT_KEY = "berani_sheet_endpoint_v1";
   function resolveWebAppUrl(){
     const q = new URLSearchParams(window.location.search);
@@ -714,7 +714,7 @@
 
     const total = state.okTotal + state.errTotal;
     const acc = total ? Math.round((state.okTotal/total)*100) : 0;
-    el.liveHint.innerHTML = `Realtime: <b>${acc}%</b> akurasi â€¢ Benar <b>${state.okTotal}</b> â€¢ Salah <b>${state.errTotal}</b>.`;
+    el.liveHint.innerHTML = `Realtime: <b>${acc}%</b> akurasi • Benar <b>${state.okTotal}</b> • Salah <b>${state.errTotal}</b>.`;
 
     el.inputBox.focus();
   }
@@ -1053,7 +1053,7 @@
       const errGlobal = parseInt(el.errCount.textContent || "0", 10);
       const total = okGlobal + errGlobal;
       const acc = total ? Math.round((okGlobal/total)*100) : 0;
-      el.liveHint.innerHTML = `Realtime: <b>${acc}%</b> akurasi â€¢ Benar <b>${okGlobal}</b> â€¢ Salah <b>${errGlobal}</b>.`;
+      el.liveHint.innerHTML = `Realtime: <b>${acc}%</b> akurasi • Benar <b>${okGlobal}</b> • Salah <b>${errGlobal}</b>.`;
       updateReport();
     }
   });

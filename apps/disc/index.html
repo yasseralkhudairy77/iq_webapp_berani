@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="id">
 <head>
   <meta charset="utf-8" />
@@ -211,7 +211,7 @@
           <div>
             <label>No HP (wajib 08xxxxxxxxxx)</label>
             <input id="phone" placeholder="083xxxxxxxxxx" inputmode="numeric" maxlength="13" />
-            <div class="muted" style="margin-top:6px">Wajib: <b>08</b> + 8â€“11 digit (total 10â€“13 digit).</div>
+            <div class="muted" style="margin-top:6px">Wajib: <b>08</b> + 8–11 digit (total 10–13 digit).</div>
           </div>
           <div>
             <label>Posisi</label>
@@ -288,7 +288,7 @@
           <label style="margin-top:10px">Apps Script Endpoint (Web App URL)</label>
           <input
             id="endpoint"
-            value="https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec"
+            value="https://script.google.com/macros/s/AKfycbwD1oBDWTEHyKBx6eWBThsfBxU_ZBXMQQX022NMheKEFvWY67X1VQMjt2tQWMoyJfSa/exec"
           />
           <div class="btns">
             <button id="sendBtn" class="warn" disabled>Kirim ke Google Sheet</button>
@@ -314,7 +314,7 @@
   <!-- ADMIN VIEW -->
   <section id="viewAdmin" class="hrd-only" style="display:none">
     <div class="card">
-      <div class="pill"><b>Admin Dashboard</b><span class="muted">Lookup HP â€¢ Filter Posisi â€¢ Ranking</span></div>
+      <div class="pill"><b>Admin Dashboard</b><span class="muted">Lookup HP • Filter Posisi • Ranking</span></div>
 
       <div class="sec row two">
         <div>
@@ -331,8 +331,8 @@
             <select id="sortMode">
               <option value="recent">Terbaru</option>
               <option value="fit">Fit Score (per posisi)</option>
-              <option value="elapsed">Waktu (cepat â†’ lambat)</option>
-              <option value="flags">Quality Flags (sedikit â†’ banyak)</option>
+              <option value="elapsed">Waktu (cepat → lambat)</option>
+              <option value="flags">Quality Flags (sedikit → banyak)</option>
             </select>
           </div>
         </div>
@@ -341,8 +341,8 @@
       <div class="sec">
         <div class="pill"><b>Target Role (untuk ranking internal)</b><span class="muted">heuristik</span></div>
         <div class="muted" style="margin-top:8px">
-          Fit Score = kedekatan skor kandidat ke target D/I/S/C per posisi (0â€“100).
-          Ini alat bantu internal (catatan ipsative), bukan â€œprediksi ilmiahâ€.
+          Fit Score = kedekatan skor kandidat ke target D/I/S/C per posisi (0–100).
+          Ini alat bantu internal (catatan ipsative), bukan “prediksi ilmiah”.
         </div>
 
         <div class="row three" style="margin-top:10px">
@@ -351,7 +351,7 @@
             <select id="roleProfilePick"></select>
           </div>
           <div>
-            <label>Target D/I/S/C (0â€“100)</label>
+            <label>Target D/I/S/C (0–100)</label>
             <div class="row two">
               <input id="tD" type="number" min="0" max="100" placeholder="D" />
               <input id="tI" type="number" min="0" max="100" placeholder="I" />
@@ -385,12 +385,12 @@
   function cleanMojibakeText(s){
     let t = String(s ?? "");
     const map = {
-      "â€œ":"\"", "â€":"\"",
-      "â€˜":"'", "â€™":"'",
-      "â€”":"-", "â€“":"-",
-      "â€¢":"•",
-      "â†":"<-", "â†’":"->",
-      "â‰ ":"!="
+      "“":"\"", "”":"\"",
+      "‘":"'", "’":"'",
+      "—":"-", "–":"-",
+      "•":"�",
+      "←":"<-", "→":"->",
+      "≠":"!="
     };
     Object.keys(map).forEach(k=>{ t = t.split(k).join(map[k]); });
     return t;
@@ -411,7 +411,7 @@
   const ROLEKEY = "disc_fc40_mobile_role_profiles_v1";
   const ENDPOINTKEY = "disc_fc40_mobile_endpoint_v1";
   const SHARED_ENDPOINT_KEY = "berani_sheet_endpoint_v1";
-  const DEFAULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec";
+  const DEFAULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbwD1oBDWTEHyKBx6eWBThsfBxU_ZBXMQQX022NMheKEFvWY67X1VQMjt2tQWMoyJfSa/exec";
   const SUBMIT_GUARD_KEY = "berani_submit_guard_v1";
   const SUBMIT_GUARD_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -894,7 +894,7 @@
     recordTimeOnLeave();
     stopTimer();
 
-    $("status").textContent = `40 blok selesai • ${$("timer").textContent}`;
+    $("status").textContent = `40 blok selesai � ${$("timer").textContent}`;
     $("progBar").style.width = `100%`;
     finalize();
   }
@@ -911,13 +911,13 @@
 
     finished = true;
 
-    $("status").textContent = `Selesai • ${$("timer").textContent}`;
+    $("status").textContent = `Selesai � ${$("timer").textContent}`;
     $("resultArea").innerHTML = `
       <div class="pill"><b>Profil</b><span class="muted">Primary + Secondary</span></div>
 
       <div class="kpi">
         <div class="item"><div class="t">Tipe</div><div class="v">${sc.primary}${sc.secondary}</div></div>
-        <div class="item"><div class="t">Fit Score (Posisi)</div><div class="v">${fit===null?"â€”":fit}</div></div>
+        <div class="item"><div class="t">Fit Score (Posisi)</div><div class="v">${fit===null?"—":fit}</div></div>
       </div>
 
       ${q.flags.length
@@ -928,7 +928,7 @@
       ${phoneOk ? "" : `<div class="badbox"><b>No HP wajib</b> format <b>08xxxxxxxxxx</b>. Saat ini tersimpan: <b>${escapeHTML(phone)}</b></div>`}
 
       <table>
-        <thead><tr><th>Dimensi</th><th>Skor (0â€“100)</th><th>Raw</th></tr></thead>
+        <thead><tr><th>Dimensi</th><th>Skor (0–100)</th><th>Raw</th></tr></thead>
         <tbody>
           ${["D","I","S","C"].map(k=>`
             <tr>
@@ -1001,7 +1001,7 @@
     const list = loadRecords();
     list.unshift(p);
     saveRecords(list);
-    alert("Tersimpan lokal âœ… (lihat Admin Dashboard)");
+    alert("Tersimpan lokal ✅ (lihat Admin Dashboard)");
     refreshAdmin();
   }
 
@@ -1028,7 +1028,7 @@
         body: JSON.stringify({ action:"submit", module:"disc", payload:p })
       });
       markSubmit(p);
-      alert("Request terkirim ke Google Sheet âœ…");
+      alert("Request terkirim ke Google Sheet ✅");
     }catch(err){
       alert("Gagal kirim. Coba jalankan HTML via server lokal (bukan file://).");
     }
@@ -1135,7 +1135,7 @@
     $("countText").textContent = `${rows.length} kandidat`;
 
     if(!rows.length){
-      $("tableHost").innerHTML = `<div class="muted">Belum ada data. Selesaikan tes lalu klik â€œSimpan Lokalâ€.</div>`;
+      $("tableHost").innerHTML = `<div class="muted">Belum ada data. Selesaikan tes lalu klik “Simpan Lokal”.</div>`;
       return;
     }
 
@@ -1158,11 +1158,11 @@
                 <span class="tag">${escapeHTML((r.primary||"") + (r.secondary||""))}</span>
                 <div class="muted">D${r.norm_D} I${r.norm_I} S${r.norm_S} C${r.norm_C}</div>
               </td>
-              <td>${r.__fit===null?"â€”":r.__fit}</td>
+              <td>${r.__fit===null?"—":r.__fit}</td>
               <td>
                 ${r.attention_pass ? `<span class="okbox" style="display:inline-block;padding:4px 8px;margin:0">AC OK</span>`
                                    : `<span class="badbox" style="display:inline-block;padding:4px 8px;margin:0">AC FAIL</span>`}
-                <div class="muted">${r.__flags} flag â€¢ ${r.elapsed_sec ?? "â€”"}s</div>
+                <div class="muted">${r.__flags} flag • ${r.elapsed_sec ?? "—"}s</div>
               </td>
               <td class="right">
                 <button class="warn" onclick="window.__exportOne('${escapeHTML(r.candidate_id)}')">Export JSON</button>
@@ -1201,7 +1201,7 @@
     const profiles = loadRoleProfiles();
     profiles[role] = t;
     saveRoleProfiles(profiles);
-    alert("Target role tersimpan âœ…");
+    alert("Target role tersimpan ✅");
     refreshAdmin();
   });
 

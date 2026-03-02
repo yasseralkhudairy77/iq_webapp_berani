@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="id">
 <head>
 <meta charset="utf-8"/>
@@ -249,7 +249,7 @@
   </div>
 
 <script>
-const DEFAULT_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwpdDT7tzTe1TsVOqA4SalrufGTD3-9vIAXwOgYqGni5p46VVNfktJhBPn8uay1ubLh/exec";
+const DEFAULT_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwD1oBDWTEHyKBx6eWBThsfBxU_ZBXMQQX022NMheKEFvWY67X1VQMjt2tQWMoyJfSa/exec";
 const SHEET_ENDPOINT_KEY = "berani_sheet_endpoint_v1";
 const LS_KEY = "iq_test_state_v2";
 const SUITE_PROFILE_KEY = "berani_suite_profile_v1";
@@ -317,15 +317,15 @@ function fmtTime(sec){
 function cleanText(s){
   let t = String(s ?? "");
   const map = {
-    "â€œ": "\"", "â€": "\"",
-    "â€˜": "'", "â€™": "'",
-    "â€”": "-", "â€“": "-",
-    "â€¢": "•",
-    "â‰ ": "!=",
-    "ðŸ“„": "PDF",
-    "âœ…": "OK",
-    "âš ï¸": "PERINGATAN",
-    "âŒ": "X"
+    "“": "\"", "”": "\"",
+    "‘": "'", "’": "'",
+    "—": "-", "–": "-",
+    "•": "�",
+    "≠": "!=",
+    "📄": "PDF",
+    "✅": "OK",
+    "⚠️": "PERINGATAN",
+    "❌": "X"
   };
   Object.keys(map).forEach(k=>{ t = t.split(k).join(map[k]); });
   return t;
@@ -527,7 +527,7 @@ async function renderQuestion(){
       const canvas = await drawCroppedToCanvas(pagePng, q.bbox);
       box.appendChild(canvas);
       media.appendChild(box);
-      hint.innerHTML = `PDF: <a href="soal.pdf#page=${q.page}" target="_blank" rel="noopener">Buka halaman ${q.page}</a> • Tampilan ini auto-zoom (bbox).`;
+      hint.innerHTML = `PDF: <a href="soal.pdf#page=${q.page}" target="_blank" rel="noopener">Buka halaman ${q.page}</a> � Tampilan ini auto-zoom (bbox).`;
     }else{
       const frame=document.createElement("iframe");
       frame.title=`Halaman ${q.page}`;
@@ -537,7 +537,7 @@ async function renderQuestion(){
       frame.style.border="0";
       box.appendChild(frame);
       media.appendChild(box);
-      hint.innerHTML = `PDF: <a href="soal.pdf#page=${q.page}" target="_blank" rel="noopener">Buka halaman ${q.page}</a> • (Opsional) nanti bisa ditambah bbox untuk auto-zoom.`;
+      hint.innerHTML = `PDF: <a href="soal.pdf#page=${q.page}" target="_blank" rel="noopener">Buka halaman ${q.page}</a> � (Opsional) nanti bisa ditambah bbox untuk auto-zoom.`;
     }
   }
 

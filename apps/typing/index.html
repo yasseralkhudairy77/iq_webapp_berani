@@ -34,6 +34,13 @@
     .btn.secondary{ background:#fff; border:1px solid var(--line); box-shadow:none; font-weight:900; }
     .btn.ghost{ background:#f7f2ec; border:1px dashed #d9c6b3; box-shadow:none; color:#3b3b3b; font-weight:900; }
     .btn:disabled{ background:var(--btnDisabled); border:1px solid #e0d7cd; color:#9a8f85; cursor:not-allowed; box-shadow:none; }
+    .btn.finish{
+      background:#ffd84d;
+      border:1px solid #e0b800;
+      color:#1a1a1a;
+      box-shadow:0 6px 0 rgba(140,110,0,.18);
+    }
+    .btn.finish:hover:not(:disabled){ background:#ffcf1a; }
 
     .statsRow{ display:grid; grid-template-columns: 1fr; gap:10px; margin:10px 0 14px; }
     .pill{ display:flex; align-items:center; justify-content:space-between; padding:12px 12px; border-radius:14px; color:#fff; font-weight:1000; }
@@ -162,7 +169,7 @@
 
       <div class="controls">
         <button class="btn ghost" id="btnStart" disabled>Mulai</button>
-        <button class="btn ghost" id="btnFinish" disabled>Selesai</button>
+        <button class="btn finish" id="btnFinish" disabled>Selesai</button>
       </div>
 
       <div class="controls">
